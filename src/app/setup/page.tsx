@@ -1,0 +1,2 @@
+import { TrackingSetup } from "@/components/tracking-setup";
+export default function SetupPage(){return <main className="mx-auto max-w-xl px-6 py-16"><a href="/" className="text-sm text-muted-foreground">← Globetrotters</a><h1 className="mt-8 text-3xl font-medium tracking-tight">Connect your little world.</h1><p className="mt-3 text-sm text-muted-foreground">Choose hosted tracking or deploy your own backend.</p><TrackingSetup initiallyOpen/></main>}

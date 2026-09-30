@@ -46,6 +46,15 @@ Change settings in the playground and choose **Copy component** to export the fu
 
 The globe supports touch, pointer dragging and arrow-key rotation. Auto rotation and animated property transitions respect `prefers-reduced-motion`. Offscreen rendering pauses and rendering stops when the tab is hidden. WebGL is required; unsupported browsers receive a fallback message.
 
+## Guided setup: two options
+
+Choose **Set up live tracking** in the playground:
+
+- **Host with us:** invite-only registration, a project ID, one configured install command, and a private key to pause or delete your project. [Owner configuration](docs/HOSTED.md).
+- **Self-host:** deploy the app and Redis to your Railway account, enter your website origin, and generate an install command for your backend. [Self-host guide](docs/SELF_HOSTING.md).
+
+Both install a `VisitorGlobe` component with its endpoint already configured. The original visual-only install remains available and makes no tracking requests. Hosted registration does not opt a project into the public showcase.
+
 ## Visitor tracking
 
 The installable globe is **telemetry-free**. Installing it does not send visitor data to us. The playground includes an optional reference backend, separate from the one-command visual component.

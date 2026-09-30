@@ -1,0 +1,11 @@
+import {mkdirSync,copyFileSync,rmSync,mkdtempSync,writeFileSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+import {spawnSync} from 'node:child_process';
+const temp=mkdtempSync(join(tmpdir(),'gt-package-'));
+mkdirSync(join(temp,'package'));mkdirSync('public/downloads',{recursive:true});
+for(const name of ['package.json','index.mjs','LICENSE'])copyFileSync(`packages/setup/${name}`,join(temp,'package',name));
+const archive=join(process.cwd(),'public/downloads/globetrotters-setup.tgz');
+const result=spawnSync('tar',['-czf',archive,'-C',temp,'package'],{stdio:'inherit'});
+rmSync(temp,{recursive:true,force:true});
+if(result.status!==0)throw new Error('Could not package setup CLI');

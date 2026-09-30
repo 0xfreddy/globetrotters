@@ -1,0 +1,1 @@
+{"name":"globetrotters-setup","version":"1.0.0","description":"Deploy your own Globetrotters tracker and Redis on Railway","type":"module","bin":{"globetrotters-setup":"index.mjs"},"engines":{"node":">=22"},"license":"MIT","files":["index.mjs","LICENSE"]}

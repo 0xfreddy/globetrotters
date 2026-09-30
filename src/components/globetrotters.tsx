@@ -1,7 +1,9 @@
 "use client";
 
 import createGlobe from "cobe";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
+
+export type MarkerStyle = "dots" | "analytics" | "polaroids";
 
 export type GlobeSettings = {
   baseColor: string; markerColor: string; glowColor: string;
@@ -9,7 +11,7 @@ export type GlobeSettings = {
   scale: number; theta: number; speed: number; autoRotate: boolean;
   drag: boolean; damping: number; transition: number; markerSize: number;
   markerElevation: number; showMarkers: boolean; showArcs: boolean;
-  arcHeight: number; arcWidth: number;
+  arcHeight: number; arcWidth: number; markerStyle: MarkerStyle;
 };
 export const defaultSettings: GlobeSettings = {
   baseColor: "#a1ad8a", markerColor: "#526b30", glowColor: "#ffffff",
@@ -17,6 +19,7 @@ export const defaultSettings: GlobeSettings = {
   scale: 1, theta: 0.22, speed: 0.12, autoRotate: true,
   drag: true, damping: 0.92, transition: 550, markerSize: 0.045,
   markerElevation: 0.02, showMarkers: true, showArcs: false, arcHeight: 0.3, arcWidth: 0.5,
+  markerStyle: "dots",
 };
 export type VisitorLocation = { location: [number, number]; count: number; label: string };
 export const demoLocations: VisitorLocation[] = [
@@ -71,7 +74,7 @@ export function Globetrotters({ settings, locations = [], className = "", onRead
           if(s.autoRotate && !reduced.matches) m.phi += s.speed*dt;
           m.phi += m.velocity*dt; m.velocity *= Math.pow(s.damping,dt*60);
         }
-        const markers = s.showMarkers ? points.current.map(p=>({location:p.location,size:smooth.markerSize*Math.max(.35,Math.min(2,Math.sqrt(p.count/40)))})) : [];
+        const markers = s.showMarkers ? points.current.map((p,index)=>({id:`visitor-${index}`,location:p.location,size:(s.markerStyle==="dots"?smooth.markerSize:.018)*Math.max(.35,Math.min(2,Math.sqrt(p.count/40)))})) : [];
         const arcs = s.showArcs && points.current.length > 1 ? points.current.slice(1).map(p=>({from:points.current[0].location,to:p.location})) : [];
         globe.update({ width:width*dpr,height:width*dpr,phi:m.phi,theta:smooth.theta+m.tilt,
           dark:smooth.dark,diffuse:smooth.diffuse,mapSamples:s.mapSamples,mapBrightness:smooth.mapBrightness,
@@ -91,5 +94,9 @@ export function Globetrotters({ settings, locations = [], className = "", onRead
       onPointerMove={e=>{if(!drag.current)return;const dx=e.clientX-drag.current.x; motion.current.phi+=dx*.006;motion.current.tilt=Math.max(-1,Math.min(1,motion.current.tilt+(e.clientY-drag.current.y)*.003));motion.current.velocity=dx*.15;drag.current={x:e.clientX,y:e.clientY};}}
       onPointerUp={()=>{drag.current=null;}} onPointerCancel={()=>{drag.current=null;}} onLostPointerCapture={()=>{drag.current=null;}}
       onKeyDown={e=>{if(!current.current.drag)return;if(["ArrowLeft","ArrowRight","ArrowUp","ArrowDown"].includes(e.key)){e.preventDefault();if(e.key==="ArrowLeft")motion.current.phi-=.1;if(e.key==="ArrowRight")motion.current.phi+=.1;if(e.key==="ArrowUp")motion.current.tilt=Math.max(-1,motion.current.tilt-.1);if(e.key==="ArrowDown")motion.current.tilt=Math.min(1,motion.current.tilt+.1);}}}/ >}
+    {current.current.showMarkers&&current.current.markerStyle!=="dots"&&points.current.map((point,index)=>{
+      const anchorStyle={positionAnchor:`--cobe-visitor-${index}`,opacity:`var(--cobe-visible-visitor-${index}, 0)`,filter:`blur(calc((1 - var(--cobe-visible-visitor-${index}, 0)) * 8px))`} as CSSProperties;
+      return current.current.markerStyle==="analytics" ? <div key={`analytics-${index}`} className="globe-marker globe-marker-analytics" style={anchorStyle}><strong>{point.count}</strong><span>{point.label}</span></div> : <div key={`polaroid-${index}`} className="globe-marker globe-marker-polaroid" style={{...anchorStyle,transform:`rotate(${index%2===0?-3:3}deg)`}}><span className="globe-marker-photo" style={{background:`linear-gradient(145deg,${current.current.baseColor},${current.current.markerColor})`}}/><strong>{point.label}</strong></div>;
+    })}
   </div>;
 }
