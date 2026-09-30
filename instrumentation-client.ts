@@ -20,4 +20,31 @@ if (!projectToken || !host) {
     capture_exceptions: true,
     debug: process.env.NODE_ENV === 'development',
   })
+
+  document.addEventListener('click', (event) => {
+    const target = event.target
+
+    if (!(target instanceof Element)) return
+
+    const link = target.closest('a[href]')
+
+    if (!(link instanceof HTMLAnchorElement)) return
+
+    try {
+      const destination = new URL(link.href, window.location.href)
+
+      if (destination.origin === window.location.origin) return
+
+      posthog.capture(
+        'outbound_link_clicked',
+        {
+          destination_host: destination.host,
+          destination_path: destination.pathname,
+        },
+        { send_instantly: true, transport: 'sendBeacon' }
+      )
+    } catch {
+      // Ignore malformed URLs without affecting the user's navigation.
+    }
+  })
 }
