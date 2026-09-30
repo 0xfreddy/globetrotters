@@ -1,3 +1,4 @@
+import { clerkConfigured } from "./auth-config";
 import { randomBytes } from "node:crypto";
 import countries from "world-countries";
 import { redis } from "./tracking";
@@ -6,7 +7,7 @@ const namespace=process.env.TRACKING_NAMESPACE||"gt:v1";
 export const indexKey=`${namespace}:projects`;
 export const projectKey=(id:string)=>`${namespace}:project:${id}`;
 export const dataPrefix=(id:string)=>`${namespace}:data:${id}`;
-export function hostedEnabled(){return process.env.HOSTED_ENABLED==="true" && !!process.env.HOSTED_SIGNUP_CODE && !!process.env.HOSTED_ADMIN_KEY && !!process.env.TRACKING_SECRET && !!process.env.REDIS_URL;}
+export function hostedEnabled(){return process.env.HOSTED_ENABLED==="true" && (clerkConfigured() || (!!process.env.HOSTED_SIGNUP_CODE && !!process.env.HOSTED_ADMIN_KEY)) && !!process.env.TRACKING_SECRET && !!process.env.REDIS_URL;}
 export async function getProject(id:string):Promise<TrackingProject|null>{
  if(id==="self"){
   if(!process.env.SELF_HOSTED_ORIGIN)return null;
@@ -15,9 +16,9 @@ export async function getProject(id:string):Promise<TrackingProject|null>{
  if(!hostedEnabled())return null;
  const value=await redis()!.get(projectKey(id));return value?JSON.parse(value):null;
 }
-export async function createProject(name:string,origin:string){
+export async function createProject(name:string,origin:string,ownerId?:string){
  const id=`gt_${randomBytes(12).toString("hex")}`,managementKey=randomBytes(32).toString("hex");
- const project:TrackingProject={id,name,origin:normalizeOrigin(origin),keyHash:hashKey(managementKey),createdAt:Date.now(),disabled:false};
+ const project:TrackingProject={id,name,origin:normalizeOrigin(origin),keyHash:ownerId?"":hashKey(managementKey),...(ownerId?{ownerId}:{}),createdAt:Date.now(),disabled:false};
  const created=await redis()!.eval(createProjectScript,2,indexKey,projectKey(id),positiveLimit(process.env.HOSTED_MAX_PROJECTS,100),id,JSON.stringify(project));
  if(!created)throw new Error("Project capacity reached. Contact the service owner.");
  return {project,managementKey};

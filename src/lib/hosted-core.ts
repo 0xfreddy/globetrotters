@@ -1,6 +1,6 @@
 import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 
-export type TrackingProject = { id:string; name:string; origin:string; keyHash:string; createdAt:number; disabled:boolean };
+export type TrackingProject = { id:string; name:string; origin:string; keyHash:string; ownerId?:string; createdAt:number; disabled:boolean };
 export function normalizeOrigin(input:unknown):string {
   if(typeof input!=="string" || input.length>512)throw new Error("Enter a valid website URL.");
   let url:URL;try{url=new URL(input);}catch{throw new Error("Include https:// in your website URL.");}
@@ -39,3 +39,12 @@ redis.call('EXPIRE', KEYS[5], 2678400)
 return 1
 `;
 export const rateScript=`local n=redis.call('INCR',KEYS[1]);if n==1 then redis.call('EXPIRE',KEYS[1],tonumber(ARGV[1])) end;return n`;
+
+// A missing owner never grants account access to legacy capability-key projects.
+export function ownsProject(project: TrackingProject | null, userId: string | null) {
+ return !!userId && !!project?.ownerId && project.ownerId === userId;
+}
+export function publicProject(project: TrackingProject) {
+ const {id,name,origin,createdAt,disabled}=project;
+ return {id,name,origin,createdAt,disabled};
+}

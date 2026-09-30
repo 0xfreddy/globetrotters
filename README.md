@@ -50,7 +50,7 @@ The globe supports touch, pointer dragging and arrow-key rotation. Auto rotation
 
 Choose **Set up live tracking** in the playground:
 
-- **Host with us:** invite-only registration, a project ID, one configured install command, and a private key to pause or delete your project. [Owner configuration](docs/HOSTED.md).
+- **Host with us:** Clerk sign-in, an account dashboard, one configured install command, visitor totals, domain editing, and pause/delete controls. [Owner configuration](docs/HOSTED.md).
 - **Self-host:** deploy the app and Redis to your Railway account, enter your website origin, and generate an install command for your backend. [Self-host guide](docs/SELF_HOSTING.md).
 
 Both install a `VisitorGlobe` component with its endpoint already configured. The original visual-only install remains available and makes no tracking requests. Hosted registration does not opt a project into the public showcase.

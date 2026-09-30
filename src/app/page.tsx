@@ -62,7 +62,7 @@ export default function Home() {
   return <div className="min-h-screen bg-white px-5 sm:px-10">
     <header className="mx-auto flex h-16 max-w-[1160px] items-center justify-between border-b">
       <a href="#" className="flex items-center gap-2.5 text-[17px] font-semibold tracking-[-.6px]"><span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#ecf0e2]"><Globe2 size={20} strokeWidth={1.5}/></span>globetrotters</a>
-      <nav className="flex items-center gap-4"><a href="/setup" className="text-xs text-[#777d72]">Tracking setup</a><a href={REPO} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-xs"><Github size={15}/>GitHub</a></nav>
+      <nav className="flex items-center gap-4"><a href="/dashboard" className="text-xs text-[#777d72]">Dashboard</a><a href={REPO} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-xs"><Github size={15}/>GitHub</a></nav>
     </header>
 
     <main className={`mx-auto flex max-w-[900px] flex-col items-center text-center transition-[padding] duration-300 ${configOpen?"pt-5":"pt-10 sm:pt-12"}`}>

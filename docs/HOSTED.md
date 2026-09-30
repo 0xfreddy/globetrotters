@@ -1,6 +1,18 @@
 # Operate Globetrotters hosted tracking
 
-The hosted service is prepared as an **invite-only beta**. Registration is disabled unless the owner configures every required setting. It reuses the existing Railway application and Redis database. No extra external authentication or email provider is required.
+Hosted projects use **Clerk accounts**. Users sign in at `/dashboard`, create projects and manage their own domains, installation commands, visitor totals, monthly request usage, pause/resume and deletion. Self-hosting does not require Clerk.
+
+## Clerk setup (owner)
+
+1. Create a Globetrotters application in [Clerk](https://dashboard.clerk.com/) and enable your preferred sign-in methods (for example email and Google).
+2. In Railway → Globetrotters → Variables, set `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` and `CLERK_SECRET_KEY` from the same Clerk instance, plus `HOSTED_ENABLED=true`. Keep the secret key server-only. Retain the existing `REDIS_URL`, `TRACKING_SECRET`, `APP_URL` and `GEOIP_PROVIDER=railway`.
+3. **Rebuild and redeploy**, because the publishable key is embedded at build time. `APP_URL` must match the website origin exactly. The app sets its sign-in and sign-up URLs to `/dashboard/sign-in` and `/dashboard/sign-up` and returns users to `/dashboard`.
+4. Use development keys for testing. Before public launch, create Clerk's production instance, configure your custom domain and required DNS/OAuth settings in Clerk, then deploy with production keys. Follow [Clerk's deployment guide](https://clerk.com/docs/guides/development/deployment/production).
+5. Test with two accounts: create a project with one, verify the other cannot list/change/delete it, then install the globe on its configured origin.
+
+No webhook is required: Redis records store Clerk user IDs directly and each dashboard API request checks the signed-in owner. Users should delete projects before deleting their Clerk account; account deletion is not automatically synchronized to Redis. An operator can clean up orphaned projects using the optional admin API. Legacy management-key projects are not automatically assigned to accounts and remain accessible only through their existing capability/admin API. There is no implicit domain-based claiming.
+
+Without Clerk keys, dashboard routes show an honest setup-pending page; APIs deny access. Visitors viewing an installed globe never sign in. Account registration is open according to your Clerk settings, bounded by the global project capacity and five create attempts per user per hour. Domain verification, billing and abuse prevention beyond these limits are not implemented.
 
 ## Owner configuration
 
@@ -8,36 +20,37 @@ In Railway → Globetrotters service → Variables, retain the existing `REDIS_U
 
 ```env
 HOSTED_ENABLED=true
-HOSTED_SIGNUP_CODE=<a long random invite code you share with approved users>
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=<your Clerk publishable key>
+CLERK_SECRET_KEY=<your Clerk secret key>
+# Optional legacy invite and operator access:
+HOSTED_SIGNUP_CODE=<optional random invite code>
 HOSTED_ADMIN_KEY=<a different random secret that only you keep>
 HOSTED_MAX_PROJECTS=100
 HOSTED_REQUESTS_PER_MINUTE=300
 HOSTED_MONTHLY_REQUEST_LIMIT=100000
 ```
 
-Generate each secret separately using `openssl rand -hex 32`. Store the admin key in your password manager. Never put either secret into `NEXT_PUBLIC_*`, Git, URLs, frontend code, or a public issue. Invite codes are submitted in a POST body; management keys are sent only in Authorization headers. Rotate the invite code to close old invitations without affecting installed projects.
+For the optional legacy invite and admin secrets, generate each separately using `openssl rand -hex 32`. Store the admin key in your password manager. Never put either secret into `NEXT_PUBLIC_*`, Git, URLs, frontend code, or a public issue. Invite codes are submitted in a POST body; management keys are sent only in Authorization headers. Rotate the invite code to close old invitations without affecting installed projects.
 
 The last three settings are optional and those are their defaults. Request limits are **per project**. Each visible browser sends a heartbeat every 30 seconds, so 100,000 requests is about 833 visitor-hours, not 100,000 visitors. Every accepted-origin heartbeat counts toward quota, including deduplicated heartbeats. Monthly quotas follow UTC calendar months. The project-count ceiling limits signup capacity. Quotas do not impose a Railway spending cap: configure Railway usage alerts and your desired billing controls separately.
 
-The existing `APP_URL` must exactly match the origin serving the setup form, with no trailing slash. The service must have a working Redis connection and a stable tracking secret. Changing `TRACKING_SECRET` resets daily visitor deduplication for existing browser IDs. No custom domain is required; set one up before public launch if you want a stable branded endpoint.
+The existing `APP_URL` must exactly match the origin serving the setup form, with no trailing slash. The service must have a working Redis connection and a stable tracking secret. Changing `TRACKING_SECRET` resets daily visitor deduplication for existing browser IDs. The Railway domain works for development-key testing; Clerk production requires a domain you control and its DNS configuration.
 
 **Do not set `SELF_HOSTED_ORIGIN` on the shared hosted service.** That variable is for customers running their own deployment.
 
 ## User flow
 
-1. Open **Set up live tracking → Host with us**.
-2. Enter a project name, exact website origin, and the invite code; accept the tracking disclosure.
-3. Save the project ID and private management key. The server keeps only a hash of the key. Lost keys require owner assistance; there is no automated email recovery.
-4. Run the generated shadcn command in an initialized shadcn React project.
-5. Add `<VisitorGlobe />` to the page. It already knows the public project ID and endpoint.
+1. Open **Host with us → Open your dashboard** and sign in or sign up.
+2. Create a project with its name and exact website origin; accept the tracking disclosure.
+3. Copy the generated shadcn install command into an initialized shadcn React project.
+4. Add `<VisitorGlobe />` to the page.
+5. Return to the dashboard to see usage, rename the project, change its allowed origin, pause/resume or delete it.
 
-The website origin must match exactly, including scheme, port and `www`. For local development, create a separate project for `http://localhost:3000`. There is no wildcard domain support. Creating a project is not proof of domain ownership: this beta relies on trusted invite distribution, and duplicate origins do not grant access to another project's data. For open public signups, add account authentication, domain verification, recovery, edge bot protection and per-customer billing/quotas first.
-
-The public project ID is **not a secret**. Exact-origin CORS protects browser integrations but cannot stop scripts forging an Origin header. Limits bound requests per registered project; use edge rate limiting to protect the service from arbitrary invalid-request traffic. This is not fraud-resistant analytics.
+Origins match exactly, including scheme, port and `www`. Local development requires a separate project for `http://localhost:3000`. Duplicate origins do not grant access to another account's project. Project IDs are public. CORS does not prevent scripts forging an Origin header; this is not fraud-resistant analytics.
 
 ## Manage projects
 
-Users can reopen the setup dialog's **Manage an existing project** section to pause, resume or delete with their ID and management key. Deletion has an explicit confirmation and removes the project plus its aggregate counts and ephemeral keys. Already in-flight requests may finish; any remaining ephemeral records expire automatically.
+Dashboard requests authenticate with Clerk and authorize every project operation by its stored owner ID. Public responses exclude owner IDs and management-key hashes. Deletion removes the project and visitor totals; in-flight collector records may remain until their TTL expires.
 
 Owner API:
 
